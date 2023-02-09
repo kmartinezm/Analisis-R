@@ -1,0 +1,218 @@
+---
+title: "Intercontinental La Luz Calí "
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    navbar:
+      - {title: "Metodos y Simulación Estadistica",align = rigth}
+      
+---
+```{r librerias}
+library(flexdashboard)
+library(paqueteMET)
+library(ggplot2)
+library(dplyr)
+library(stringi)
+library(formattable)
+library(summarytools)
+library(webr)
+library(ggsci)
+```
+
+```{r data transformation}
+# homogenisar texto
+data_cl <- CarreraLuz22 %>%
+  mutate(origen=toupper(stri_trans_general(CarreraLuz22$origen,'Latin-ASCII')))
+
+# transformando los datos nulos en paises 
+data_cl <- data_cl %>%
+  mutate(nacionalidad = ifelse(data_cl$nacionalidad == 0, ifelse(data_cl$origen == 'CALI', 'COL','PAN'),data_cl$nacionalidad))
+
+# transformado time a min
+data_cl <- data_cl %>%
+  mutate(timerun = data_cl$timerun/60)
+
+# nueva columna de velocidad por participante
+
+km_carr <- 10000
+
+data_cl <- data_cl %>%
+  mutate(velocidad_ms = (km_carr/data_cl$timerun/60))
+
+```
+
+# Resumen
+
+##
+### Tiempo promedio de carrera
+
+```{r}
+
+tpo_prm <- mean(data_cl$timerun)
+tpo_prm <- formattable::comma(tpo_prm,digits=2)
+tpo_prm <- as.character(tpo_prm)
+tpo_prm <- paste(tpo_prm, sep= " ","min")
+
+valueBox(tpo_prm,icon='fa-clock-o')
+
+```
+
+### Tiempo runner ganador 
+```{r}
+
+tpo_min <- min(data_cl$timerun)
+tpo_min <- formattable::comma(tpo_min,digits=2)
+tpo_min <- as.character(tpo_min)
+tpo_min <- paste(tpo_min, sep= " ","min")
+
+valueBox(tpo_min,icon='fa-trophy')
+
+```
+
+### Velocidad promedio de carrera 
+```{r}
+
+vlc_prm <- mean(data_cl$velocidad_ms)
+vlc_prm <- formattable::comma(vlc_prm,digits=2)
+vlc_prm <- as.character(vlc_prm)
+vlc_prm <- paste(vlc_prm, sep= " ","m/s")
+
+valueBox(vlc_prm,icon='fa-info')
+
+```
+
+### Velocidad máxima alcanzada
+```{r}
+
+vlc_max <- max(data_cl$velocidad_ms)
+vlc_max <- formattable::comma(vlc_max,digits=2)
+vlc_max <- as.character(vlc_max)
+vlc_max <- paste(vlc_max, sep= " ","m/s")
+
+valueBox(vlc_max,icon='fa-bolt')
+
+```
+
+### Edad promedio de los runners
+```{r}
+
+edd_prm <- mean(data_cl$edad)
+edd_prm <- formattable::comma(edd_prm,digits=0)
+edd_prm <- as.character(edd_prm)
+edd_prm <- paste(edd_prm, sep= " ","años")
+
+valueBox(edd_prm,icon='fa-eye')
+
+```
+
+### Numero de runners
+```{r}
+
+num_prt <- max(data_cl$id)
+num_prt <- as.character(num_prt)
+num_prt <- paste(num_prt, sep= " ","runners")
+
+valueBox(num_prt,icon='fa-users')
+
+```
+## 
+### pru_1
+```{r}
+ggplot(data_cl,aes(x=data_cl$timerun))+
+  geom_histogram(fill='blue',color='black')+
+  xlim(c(30,100))+
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+```
+
+### pru_2
+```{r}
+ggplot(data_cl,aes(x=data_cl$edad,y=data_cl$timerun,color=data_cl$categoria))+
+  geom_point()+
+  theme(legend.position = 'bottom')+
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) 
+```
+
+### pru_3
+
+```{r}
+#ggplot(data_cl,aes(x=data_cl$categoria,fill=data_cl$sex))+
+#  geom_bar()
+
+pru <- data.frame(table(data_cl$categoria,data_cl$sex))
+colnames(pru) <- c("Categoria","Sex","Frecuencia")
+
+# pru <- subset(pru,(pru$Categoria %in% c("2. Abierta","3. Veteranos A","4. Veteranos B")))
+
+PieDonut(pru,aes(Sex,Categoria,count=Frecuencia),explode = 2, title = "hola")
+```
+
+
+# resumen 2
+##
+### pru_4
+```{r}
+ggplot(data_cl,aes(x=data_cl$categoria,y=data_cl$timerun,fill=data_cl$categoria))+
+  geom_boxplot()+
+  theme(legend.position = 'bottom')+
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())+
+  labs(x='Categoria',y='Tiempo de Carrera',
+       caption = 'Tomada de XM',fill='Categoria_')
+
+```
+
+### pru_5
+```{r}
+
+ggplot(data_cl,aes(x=data_cl$timerun))+
+  geom_histogram(aes(y=..density..),fill='white',color='black')+
+  geom_density(alpha=.5,fill = "#0EB0C6")+
+  xlim(c(30,100))+
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+# #0EB0C6 #FF6666
+```
+
+Prueba de que las notas si se pueden
+
+### pru_6
+
+```{r}
+
+freqc <- data.frame(table(data_cl$categoria))
+colnames(freqc) <- c("Categoria","Frecuencia")
+
+ggplot(freqc,aes(x=2, y=Frecuencia,fill=Categoria))+
+  geom_bar(stat='identity')+
+  geom_text(aes(label=percent(Frecuencia/1922,digits = 0)))+
+  coord_polar("y")+
+  theme_void()+
+  xlim(0.5,2.5)
+
+```
+
+
+# Resumen 3
+##
+### Pru_676
+
+```{r}
+pru <- data.frame(table(data_cl$categoria,data_cl$sex))
+colnames(pru) <- c("Categoria","Sex","Frecuencia")
+
+# pru <- subset(pru,(pru$Categoria %in% c("2. Abierta","3. Veteranos A","4. Veteranos B")))
+
+PieDonut(pru,aes(Sex,Categoria,count=Frecuencia),explode = 2)
+
+```
+
+##
